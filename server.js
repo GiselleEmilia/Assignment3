@@ -86,6 +86,117 @@ router.post('/signin', function (req, res) {
     })
 });
 
+router.route('/movies')
+
+    
+    .get(authJwtController.isAuthenticated, function(req,res)  {
+
+        Movie.find({}, (err, movies)=>
+        {
+            if(err){
+
+                return res.status(500).json({success:false, message:err});
+            }else
+            {
+                const moviesArray = Object.values(movies);
+                res.status(200).json({success :true, message:"Successfully retrieved",  moviesArray});
+            }
+        })     
+
+
+    })
+
+    
+    .post(authJwtController.isAuthenticated, function(req,res) {
+
+        const { title, releaseDate, genre, actors } = req.body;
+
+        if(!title || !releaseDate || !genre || !actors || actors.length < 3 ){
+
+            return res.status(400).json({success: false, message: 'Please Include all information for the movie collection'})
+
+        }
+
+        const newMovie= new Movie({ title, releaseDate, genre, actors});
+
+        newMovie.save(function(err,movie) {
+
+            if(err){
+
+                return res.status(500).json({message: err});
+            }
+            res.status(200).json({message: 'movie created', movie});
+        });
+
+        })
+
+
+    .delete(authJwtController.isAuthenticated, (req, res) => {
+
+            const title = req.body.title;
+        
+            if (!title) {
+                return res.status(400).json({success: false, message: "Missing title parameter"});
+            }
+        
+            Movie.deleteOne({title}, (err, result) => {
+                if (err) {
+                    return res.status(500).json({success: false, message: "Error deleting movie"});
+                }
+        
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({success: false, message: "No movie found to delete"});
+                }
+        
+                return res.status(200).json({success: true, message: "Movie deleted"});
+            });
+        
+        })
+       
+
+
+
+
+    .put(authJwtController.isAuthenticated, (req, res) => {
+
+        const{title, releaseDate, genre, actors }= req.body;
+
+        if(!title || !releaseDate || !genre || !actors || actors.length < 3 ){
+
+            return res.status(400).json({success: false, message:'Invalid request: missing required fields'});
+
+        }else
+        {
+            Movie.findOneAndUpdate({title: req.body.title}, { title, releaseDate, genre, actors }, { new: true }, function(err, movie){
+
+                if(err)
+                {
+
+                    return res.status(500).json({success: false, message:"Unable to update title passed in."});
+
+                }else if(!movie){
+
+                    return res.status(404).json({message:"movie not found"});
+
+
+                }
+                else
+                {
+                    res.status(200).json({message:"Movie updated",movie});
+                }
+
+            });
+        }
+
+
+    })
+
+    .all(function(req,res){
+
+        res.status(404).json('Does not support the HTTP method');
+    });
+
+
 app.use('/', router);
 app.listen(process.env.PORT || 8080);
 module.exports = app; // for testing only
